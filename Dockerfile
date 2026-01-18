@@ -4,7 +4,6 @@ MAINTAINER Richard Kojedzinszky <krichy@nmdps.net>
 ENV STALKER_VERSION=master
 
 # Update APT sources to use correct archive repositories
-# Jessie-updates doesn't exist in archive, only main and security
 RUN echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list && \
     echo "deb http://archive.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \
     echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/99no-check-valid-until && \
@@ -18,7 +17,10 @@ RUN apt-get update && apt-get dist-upgrade -f -y && \
     ln -sf /usr/share/i18n/SUPPORTED /etc/locale.gen && \
     locale-gen
 
-ADD files/ /
+# Copy specific files instead of entire directory
+COPY files/entrypoint.sh /entrypoint.sh
+COPY files/build.xml.image.diff /build.xml.image.diff
+COPY files/build.xml.run.diff /build.xml.run.diff
 RUN chmod +x /entrypoint.sh
 
 RUN cd /var/www/html/ && mkdir -p stalker_portal && cd stalker_portal && \
