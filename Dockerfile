@@ -3,9 +3,9 @@ MAINTAINER Richard Kojedzinszky <krichy@nmdps.net>
 
 ENV STALKER_VERSION=master
 
-# Update APT sources to use archive repositories for Jessie
+# Update APT sources to use correct archive repositories
+# Jessie-updates doesn't exist in archive, only main and security
 RUN echo "deb http://archive.debian.org/debian jessie main" > /etc/apt/sources.list && \
-    echo "deb http://archive.debian.org/debian jessie-updates main" >> /etc/apt/sources.list && \
     echo "deb http://archive.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \
     echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/99no-check-valid-until && \
     echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/99allow-unauth
@@ -19,6 +19,7 @@ RUN apt-get update && apt-get dist-upgrade -f -y && \
     locale-gen
 
 ADD files/ /
+RUN chmod +x /entrypoint.sh
 
 RUN cd /var/www/html/ && mkdir -p stalker_portal && cd stalker_portal && \
     curl -L https://github.com/azhurb/stalker_portal/archive/${STALKER_VERSION}.tar.gz | tar xzf - --strip-components=1
@@ -40,12 +41,17 @@ RUN \
     a2dismod -f status && \
     a2enmod rewrite
 
-RUN cd /var/www/html/stalker_portal/deploy/ && cp build.xml build.xml.orig && \
-    patch -p0 < /build.xml.image.diff && rm /build.xml.image.diff && \
-    phing && \
-    rm -rf /var/cache/apt/* /var/lib/apt/lists/* && \
-    mv build.xml.orig build.xml && patch -p0 < /build.xml.run.diff && \
-    rm /build.xml.run.diff
+RUN cd /var/www/html/stalker_portal/deploy/ && \
+    if [ -f build.xml ]; then \
+        cp build.xml build.xml.orig && \
+        patch -p0 < /build.xml.image.diff && \
+        rm /build.xml.image.diff && \
+        phing && \
+        mv build.xml.orig build.xml && \
+        patch -p0 < /build.xml.run.diff && \
+        rm /build.xml.run.diff; \
+    fi && \
+    rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
